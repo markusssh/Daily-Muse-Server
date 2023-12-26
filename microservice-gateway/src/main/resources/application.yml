@@ -1,0 +1,29 @@
+management:
+  endpoint:
+    gateway:
+      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: gateway
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: authentication_microservice
+          uri: http://localhost:8090
+          predicates:
+            - Path=/api/auth/**
+        - id: user_microservice
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/user/**
+          filters:
+            - AuthFilter
+        - id: note_microservice
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/note/**
+          filters:
+            - AuthFilter
