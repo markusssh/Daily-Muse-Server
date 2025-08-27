@@ -26,13 +26,13 @@
 ### REST API
 
 **POST /api/auth/register** - Регистрация пользователя
-```json
+```
 Request: { "email": "user@example.com", "password": "password123" }
 Response: { "token": "jwt_token" }
 ```
 
 **POST /api/auth/authenticate** - Вход пользователя
-```json
+```
 Request: { "email": "user@example.com", "password": "password123" }
 Response: { "token": "jwt_token" }
 ```
