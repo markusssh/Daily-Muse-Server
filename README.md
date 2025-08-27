@@ -38,7 +38,7 @@ Response: { "token": "jwt_token" }
 ```
 
 **POST /api/auth/validate?token={jwt}** - Валидация токена
-```json
+```
 Response: userId (Long)
 ```
 
