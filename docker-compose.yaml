@@ -1,0 +1,127 @@
+version: "3.9"
+
+networks:
+  daily-muse:
+
+volumes:
+  pg_user_data:
+  pg_note_data:
+  pg_review_data:
+
+services:
+  user-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${USER_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_user_data:/var/lib/postgresql/data
+    networks: [daily-muse]
+
+  note-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${NOTE_DB}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_note_data:/var/lib/postgresql/data
+    networks: [daily-muse]
+
+  review-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${REVIEW_DB}
+    ports:
+      - "5434:5432"
+    volumes:
+      - pg_review_data:/var/lib/postgresql/data
+    networks: [daily-muse]
+
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: ../Dockerfile\ (1).txt
+    image: daily-muse/gateway:dev
+    depends_on:
+      - auth
+      - user
+      - note
+      - review
+    environment:
+      SERVER_PORT: ${GATEWAY_PORT}
+    ports:
+      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
+    networks: [daily-muse]
+
+  auth:
+    build:
+      context: ./auth
+      dockerfile: ../Dockerfile.txt
+    image: daily-muse/auth:dev
+    depends_on: [user-db]
+    command: ["java","-jar","/microservice-authentication-0.0.1-SNAPSHOT.jar","--server.port=${AUTH_PORT}"]
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/${USER_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "${AUTH_PORT}:${AUTH_PORT}"
+    networks: [daily-muse]
+
+  user:
+    image: eclipse-temurin:17-jre
+    working_dir: /app
+    volumes:
+      - ./user/build/libs/microservice-user-0.0.1-SNAPSHOT.jar:/app/app.jar:ro
+    depends_on: [user-db]
+    command: ["java","-jar","/app/app.jar","--server.port=${USER_PORT}"]
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/${USER_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    ports:
+      - "${USER_PORT}:${USER_PORT}"
+    networks: [daily-muse]
+
+  note:
+    build:
+      context: ./note
+      dockerfile: ../Dockerfile\ (2).txt
+    image: daily-muse/note:dev
+    depends_on: [note-db]
+    command: ["java","-jar","/microservice-note-0.0.1-SNAPSHOT.jar","--server.port=${NOTE_PORT}"]
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://note-db:5432/${NOTE_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    ports:
+      - "${NOTE_PORT}:${NOTE_PORT}"
+    networks: [daily-muse]
+
+  review:
+    image: eclipse-temurin:17-jre
+    working_dir: /app
+    volumes:
+      - ./review/build/libs/microservice-review-0.0.1-SNAPSHOT.jar:/app/app.jar:ro
+    depends_on: [review-db]
+    command: ["java","-jar","/app/app.jar","--server.port=${REVIEW_PORT}"]
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://review-db:5432/${REVIEW_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    ports:
+      - "${REVIEW_PORT}:${REVIEW_PORT}"
+    networks: [daily-muse]
